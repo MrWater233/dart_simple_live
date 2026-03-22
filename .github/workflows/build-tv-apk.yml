@@ -68,7 +68,15 @@ jobs:
           cd simple_live_tv_app
           flutter build apk --release --split-per-abi
 
-      # 使用apksigner重签名（确保V1+V2签名）
+      # 查看APK信息
+      - name: Dump APK info
+        run: |
+          AAPT=$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools/ | tail -1)/aapt
+          APK=simple_live_tv_app/build/app/outputs/flutter-apk/app-release.apk
+          echo "=== APK badging ==="
+          $AAPT dump badging "$APK" | grep -E "sdkVersion|targetSdkVersion|uses-feature|package:"
+
+      # 使用apksigner重签名（强制V1+V2签名）
       - name: Re-sign APKs with V1+V2
         run: |
           APKSIGNER=$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools/ | tail -1)/apksigner
@@ -82,6 +90,7 @@ jobs:
               --key-pass "pass:${{ secrets.TV_KEY_PASSWORD }}" \
               --v1-signing-enabled true \
               --v2-signing-enabled true \
+              --min-sdk-version 21 \
               "$APK"
             echo "=== Verify: $APK ==="
             $APKSIGNER verify --verbose "$APK"
