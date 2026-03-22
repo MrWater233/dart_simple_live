@@ -62,20 +62,30 @@ jobs:
           cd simple_live_tv_app
           flutter build apk --release
 
-      # 验证APK签名
-      - name: Verify APK signing
-        run: |
-          APK_PATH=simple_live_tv_app/build/app/outputs/flutter-apk/app-release.apk
-          echo "=== APK info ==="
-          ls -lh $APK_PATH
-          echo "=== Verify signature ==="
-          $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools/ | tail -1)/apksigner verify --verbose --print-certs $APK_PATH
-
       # 打包分架构APK
       - name: Build Split APKs
         run: |
           cd simple_live_tv_app
           flutter build apk --release --split-per-abi
+
+      # 使用apksigner重签名（确保V1+V2签名）
+      - name: Re-sign APKs with V1+V2
+        run: |
+          APKSIGNER=$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools/ | tail -1)/apksigner
+          KS=${{ steps.android_tv_keystore.outputs.filePath }}
+          for APK in simple_live_tv_app/build/app/outputs/flutter-apk/app-*release.apk; do
+            echo "Re-signing: $APK"
+            $APKSIGNER sign \
+              --ks "$KS" \
+              --ks-key-alias "${{ secrets.TV_KEY_ALIAS }}" \
+              --ks-pass "pass:${{ secrets.TV_STORE_PASSWORD }}" \
+              --key-pass "pass:${{ secrets.TV_KEY_PASSWORD }}" \
+              --v1-signing-enabled true \
+              --v2-signing-enabled true \
+              "$APK"
+            echo "=== Verify: $APK ==="
+            $APKSIGNER verify --verbose "$APK"
+          done
 
       # 上传APK至Artifacts
       - name: Upload APK to Artifacts
