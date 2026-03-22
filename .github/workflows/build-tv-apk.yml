@@ -56,6 +56,13 @@ jobs:
           cd simple_live_tv_app
           flutter pub get
 
+      # 降低targetSdkVersion以兼容国产TV系统
+      - name: Patch targetSdkVersion for TV compatibility
+        run: |
+          sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 28/' simple_live_tv_app/android/app/build.gradle.kts
+          echo "=== Patched build.gradle.kts targetSdk ==="
+          grep targetSdk simple_live_tv_app/android/app/build.gradle.kts
+
       # 打包通用APK
       - name: Build Universal APK
         run: |
@@ -75,26 +82,6 @@ jobs:
           APK=simple_live_tv_app/build/app/outputs/flutter-apk/app-release.apk
           echo "=== APK badging ==="
           $AAPT dump badging "$APK" | grep -E "sdkVersion|targetSdkVersion|uses-feature|package:"
-
-      # 使用apksigner重签名（强制V1+V2签名）
-      - name: Re-sign APKs with V1+V2
-        run: |
-          APKSIGNER=$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools/ | tail -1)/apksigner
-          KS=${{ steps.android_tv_keystore.outputs.filePath }}
-          for APK in simple_live_tv_app/build/app/outputs/flutter-apk/app-*release.apk; do
-            echo "Re-signing: $APK"
-            $APKSIGNER sign \
-              --ks "$KS" \
-              --ks-key-alias "${{ secrets.TV_KEY_ALIAS }}" \
-              --ks-pass "pass:${{ secrets.TV_STORE_PASSWORD }}" \
-              --key-pass "pass:${{ secrets.TV_KEY_PASSWORD }}" \
-              --v1-signing-enabled true \
-              --v2-signing-enabled true \
-              --min-sdk-version 21 \
-              "$APK"
-            echo "=== Verify: $APK ==="
-            $APKSIGNER verify --verbose "$APK"
-          done
 
       # 上传APK至Artifacts
       - name: Upload APK to Artifacts
