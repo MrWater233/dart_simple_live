@@ -59,7 +59,7 @@ jobs:
       # 降低targetSdkVersion以兼容国产TV系统
       - name: Patch targetSdkVersion for TV compatibility
         run: |
-          sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 28/' simple_live_tv_app/android/app/build.gradle.kts
+          sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 33/' simple_live_tv_app/android/app/build.gradle.kts
           echo "=== Patched build.gradle.kts targetSdk ==="
           grep targetSdk simple_live_tv_app/android/app/build.gradle.kts
 
